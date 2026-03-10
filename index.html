@@ -1,0 +1,1628 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <!-- ═══════════════════════════════════════════════
+     📱 MOBILE / PWA META TAGS
+     Aşama 1 iyileştirmeleri — her satır açıklamalı
+════════════════════════════════════════════════ -->
+
+    <!-- Viewport: çift-tap zoom kapalı, maximum-scale=1 zoom engeli -->
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
+    <!-- iOS: Tam ekran web uygulaması modu (status bar gizlenir) -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+
+    <!-- iOS status bar rengi: beyaz içerik için "black-translucent", koyu tema için "black" -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <!-- Ana ekranda görünecek uygulama adı -->
+    <meta name="apple-mobile-web-app-title" content="PULSE">
+
+    <!-- Android Chrome: tema rengi (notification bar) -->
+    <meta name="theme-color" content="#f4efe6">
+
+    <!-- Android: tam ekran uygulama modu -->
+    <meta name="mobile-web-app-capable" content="yes">
+
+    <!-- iOS akıllı banner'ı kapat (uygulama yoksa sinir bozucu çıkar) -->
+    <meta name="apple-itunes-app" content="app-id=XXXXXXXXX">
+
+    <!-- ── Apple Touch Icons (boyutlar App Store gereksinimiyle uyumlu) ──
+     Gerçek ikonları /icons/ klasörüne koy, src'leri güncelle.
+     Şimdilik placeholder olarak bırakıldı. -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="/icons/icon-167.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="/icons/icon-120.png">
+
+    <!-- Android / PWA ikonlar -->
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png">
+
+    <!-- PWA Manifest (Aşama 2'de oluşturacağız) -->
+    <link rel="manifest" href="/manifest.json">
+
+    <title>PULSE</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            /* iOS dokunma parlaması */
+            -webkit-touch-callout: none;
+            /* iOS uzun basma menüsü */
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        :root {
+            --bg: #f4efe6;
+            --ink: #181818;
+            --mid: #999;
+            --red: #e8321f;
+            /* Safe area değişkenleri — notch / Dynamic Island / home bar için */
+            --sat: env(safe-area-inset-top, 0px);
+            --sab: env(safe-area-inset-bottom, 0px);
+            --sal: env(safe-area-inset-left, 0px);
+            --sar: env(safe-area-inset-right, 0px);
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            /* iOS bounce scroll'u engelle */
+            overflow: hidden;
+            overscroll-behavior: none;
+            -webkit-overflow-scrolling: auto;
+            position: fixed;
+            /* iOS'ta adres çubuğu kaymasını engeller */
+        }
+
+        body {
+            background: var(--bg);
+            min-height: 100svh;
+            /* svh: Safari'de güvenilir */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Outfit', sans-serif;
+            cursor: pointer;
+            /* Safe area padding — notch ve home bar alanını koru */
+            padding-top: var(--sat);
+            padding-bottom: var(--sab);
+            padding-left: var(--sal);
+            padding-right: var(--sar);
+            touch-action: none;
+            /* tüm body'de browser gesture'ları kapat */
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 999;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+            opacity: 0.035;
+            mix-blend-mode: multiply;
+        }
+
+        /* ── Orientation uyarısı: landscape modda göster ── */
+        #orient-warn {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            background: var(--ink);
+            color: var(--bg);
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 28px;
+            letter-spacing: 3px;
+            text-align: center;
+            padding: 40px;
+        }
+
+        #orient-warn .ow-icon {
+            font-size: 56px;
+            animation: rota 2s ease-in-out infinite;
+        }
+
+        @keyframes rota {
+
+            0%,
+            100% {
+                transform: rotate(0deg);
+            }
+
+            50% {
+                transform: rotate(90deg);
+            }
+        }
+
+        #orient-warn p {
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 2px;
+            opacity: 0.6;
+            margin-top: 4px;
+        }
+
+        @media (orientation: landscape) and (max-height: 500px) {
+            #orient-warn {
+                display: flex;
+            }
+        }
+
+        .screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        /* ── HUD ── */
+        #game-screen {
+            position: relative;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0;
+        }
+
+        .hud {
+            width: 100%;
+            max-width: 420px;
+            padding: 12px 32px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+
+        .hud-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .hud-lives {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .hud-lives-lbl {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--mid);
+        }
+
+        .lives-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .heart {
+            width: 24px;
+            height: 22px;
+            transition: transform 0.2s;
+        }
+
+        .heart svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .heart .hf {
+            fill: var(--ink);
+            transition: fill 0.3s;
+        }
+
+        .heart.lost .hf {
+            fill: none;
+        }
+
+        .heart.lost svg {
+            opacity: 0.2;
+        }
+
+        .heart.shatter {
+            animation: hs 0.38s forwards;
+        }
+
+        @keyframes hs {
+            0% {
+                transform: scale(1.4)
+            }
+
+            60% {
+                transform: scale(0.6) rotate(20deg);
+                opacity: 0.4
+            }
+
+            100% {
+                transform: scale(0) rotate(35deg);
+                opacity: 0
+            }
+        }
+
+        .menu-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 5px;
+            padding: 4px;
+            /* Minimum 44x44 dokunma alanı (Apple HIG standardı) */
+            min-width: 44px;
+            min-height: 44px;
+        }
+
+        .menu-btn span {
+            display: block;
+            width: 100%;
+            height: 1.5px;
+            background: var(--ink);
+            border-radius: 2px;
+            opacity: 0.35;
+            transition: opacity 0.2s;
+        }
+
+        .menu-btn:active span {
+            opacity: 1;
+        }
+
+        .hud-score {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 2px;
+        }
+
+        .hud-score-num {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 64px;
+            line-height: 1;
+            color: var(--ink);
+            letter-spacing: 1px;
+        }
+
+        .hud-score-label {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--mid);
+            margin-top: -4px;
+        }
+
+        .canvas-wrap {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            min-height: 0;
+        }
+
+        #gameCanvas {
+            display: block;
+            touch-action: none;
+        }
+
+        .hud-bottom {
+            width: 100%;
+            max-width: 420px;
+            padding: 0 32px 16px;
+            /* Home bar (iPhone) için ekstra padding */
+            padding-bottom: max(16px, calc(var(--sab) + 8px));
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .combo-disp {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 20px;
+            letter-spacing: 2px;
+            color: var(--ink);
+            opacity: 0;
+            transition: opacity 0.2s;
+            min-width: 90px;
+        }
+
+        .combo-disp.show {
+            opacity: 1;
+        }
+
+        .combo-disp.hot {
+            color: var(--red);
+        }
+
+        .hud-speed {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .speed-name {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 16px;
+            letter-spacing: 3px;
+            color: var(--ink);
+            transition: color 0.4s;
+            line-height: 1;
+        }
+
+        .speed-bar-track {
+            width: 60px;
+            height: 2px;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .speed-bar-fill {
+            height: 100%;
+            border-radius: 2px;
+            background: var(--ink);
+            transition: width 0.6s ease, background 0.4s;
+        }
+
+        .speed-lbl {
+            font-size: 9px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--mid);
+        }
+
+        .rings-disp {
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--mid);
+            text-align: right;
+            min-width: 90px;
+        }
+
+        .rings-disp span {
+            color: var(--ink);
+            font-weight: 600;
+        }
+
+        /* ── SPLASH ── */
+        .splash {
+            position: fixed;
+            inset: 0;
+            z-index: 300;
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 28px;
+            transition: opacity 0.7s ease;
+        }
+
+        .splash.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .splash-ring-wrap {
+            position: relative;
+            width: 160px;
+            height: 160px;
+        }
+
+        .spr {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid var(--ink);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .spr.r1 {
+            width: 160px;
+            height: 160px;
+            opacity: 0.1
+        }
+
+        .spr.r2 {
+            width: 110px;
+            height: 110px;
+            opacity: 0.18
+        }
+
+        .spr.r3 {
+            width: 64px;
+            height: 64px;
+            opacity: 1;
+            border-width: 2.5px
+        }
+
+        .spr.dot {
+            width: 12px;
+            height: 12px;
+            background: var(--ink);
+            border: none
+        }
+
+        .spr.pulse {
+            width: 160px;
+            height: 160px;
+            border: 3px solid var(--red);
+            transform: translate(-50%, -50%) scale(0.4);
+            animation: sp 1.4s ease-in-out infinite
+        }
+
+        @keyframes sp {
+            0% {
+                transform: translate(-50%, -50%) scale(0.4);
+                opacity: 1
+            }
+
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0
+            }
+        }
+
+        .splash-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 72px;
+            letter-spacing: 10px;
+            line-height: 1;
+            color: var(--ink);
+            animation: sti 0.9s ease forwards
+        }
+
+        @keyframes sti {
+            0% {
+                opacity: 0;
+                transform: translateY(10px)
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        /* ── CONSENT ── */
+        .consent-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 0;
+            transition: opacity 0.4s;
+        }
+
+        .consent-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .consent-card {
+            width: 100%;
+            max-width: 480px;
+            background: #fff;
+            border-radius: 28px 28px 0 0;
+            padding: 32px 28px;
+            /* Home bar için güvenli alan */
+            padding-bottom: max(48px, calc(var(--sab) + 32px));
+            box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .consent-pill {
+            width: 36px;
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(0, 0, 0, 0.12);
+            margin: 0 auto 24px;
+        }
+
+        .consent-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 30px;
+            letter-spacing: 2px;
+            color: var(--ink);
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .consent-body {
+            font-size: 12px;
+            line-height: 1.7;
+            color: var(--mid);
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .consent-body a {
+            color: var(--ink);
+            font-weight: 600;
+        }
+
+        .consent-checks {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .consent-check {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            cursor: pointer;
+        }
+
+        .consent-check input[type="checkbox"] {
+            display: none;
+        }
+
+        .consent-check-box {
+            width: 20px;
+            height: 20px;
+            min-width: 20px;
+            border-radius: 6px;
+            border: 1.5px solid rgba(0, 0, 0, 0.2);
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, border-color 0.2s;
+            margin-top: 1px;
+        }
+
+        .consent-check input:checked+.consent-check-box {
+            background: var(--ink);
+            border-color: var(--ink);
+        }
+
+        .consent-check input:checked+.consent-check-box::after {
+            content: '✓';
+            color: #fff;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .consent-check-label {
+            font-size: 12px;
+            color: var(--ink);
+            line-height: 1.5;
+        }
+
+        .consent-check-label span {
+            color: var(--mid);
+            font-size: 11px;
+        }
+
+        .consent-accept {
+            width: 100%;
+            padding: 16px;
+            background: var(--ink);
+            color: var(--bg);
+            border: none;
+            border-radius: 100px;
+            cursor: pointer;
+            font-family: 'Outfit', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            transition: opacity .2s;
+            margin-bottom: 12px;
+            /* iOS: min dokunma alanı */
+            min-height: 44px;
+        }
+
+        .consent-accept:active {
+            opacity: 0.8;
+        }
+
+        .consent-reject {
+            width: 100%;
+            padding: 12px;
+            background: none;
+            color: var(--mid);
+            border: none;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            min-height: 44px;
+        }
+
+        /* ── START ── */
+        #start-screen {
+            gap: 0;
+            text-align: center;
+            padding: 40px;
+            padding-top: max(40px, var(--sat));
+            padding-bottom: max(40px, var(--sab));
+        }
+
+        .s-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(96px, 25vw, 144px);
+            line-height: 0.88;
+            letter-spacing: 5px;
+            color: var(--ink);
+        }
+
+        .s-sub {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--mid);
+            margin: 12px 0 40px;
+        }
+
+        .s-preview {
+            position: relative;
+            width: 156px;
+            height: 156px;
+            margin: 0 auto 36px;
+        }
+
+        .pr {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid var(--ink);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%)
+        }
+
+        .pr.r1 {
+            width: 156px;
+            height: 156px;
+            opacity: .1
+        }
+
+        .pr.r2 {
+            width: 114px;
+            height: 114px;
+            opacity: .2
+        }
+
+        .pr.r3 {
+            width: 70px;
+            height: 70px;
+            opacity: 1;
+            border-width: 2.5px
+        }
+
+        .pr.dot {
+            width: 12px;
+            height: 12px;
+            background: var(--ink);
+            border: none
+        }
+
+        .pr.mv {
+            width: 156px;
+            height: 156px;
+            border-color: var(--red);
+            border-width: 3px;
+            transform: translate(-50%, -50%) scale(0.45);
+            animation: pm 1.5s ease-in-out infinite
+        }
+
+        @keyframes pm {
+            0% {
+                transform: translate(-50%, -50%) scale(0.45);
+                opacity: 1
+            }
+
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 0.1
+            }
+        }
+
+        .s-rules {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            margin-bottom: 32px;
+        }
+
+        .s-rule {
+            font-size: 12px;
+            color: var(--mid);
+            letter-spacing: 0.5px;
+        }
+
+        .s-rule strong {
+            color: var(--ink);
+        }
+
+        .s-tap {
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            color: var(--ink);
+            animation: bl 1.5s ease-in-out infinite;
+        }
+
+        @keyframes bl {
+
+            0%,
+            100% {
+                opacity: 1
+            }
+
+            50% {
+                opacity: 0.25
+            }
+        }
+
+        /* ── CONTINUE ── */
+        #continue-screen {
+            gap: 0;
+            text-align: center;
+            padding: 48px 40px;
+            justify-content: center;
+        }
+
+        .c-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 56px;
+            letter-spacing: 3px;
+            color: var(--ink);
+            margin-bottom: 8px;
+        }
+
+        .c-sub {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--mid);
+            margin-bottom: 40px;
+        }
+
+        .c-lives-preview {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-bottom: 48px;
+        }
+
+        .c-heart {
+            width: 36px;
+            height: 34px;
+        }
+
+        .c-heart svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .c-heart .chf {
+            fill: var(--red);
+        }
+
+        /* ── GAME OVER ── */
+        .o-lbl {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--mid);
+        }
+
+        .o-score {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(84px, 22vw, 124px);
+            line-height: 1;
+            letter-spacing: 2px;
+            color: var(--ink);
+        }
+
+        .o-stats {
+            display: flex;
+            gap: 28px;
+            justify-content: center;
+            margin: 14px 0 28px;
+        }
+
+        .o-stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+
+        .o-sv {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 30px;
+            color: var(--ink);
+            line-height: 1;
+        }
+
+        .o-sl {
+            font-size: 9px;
+            font-weight: 600;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--mid);
+        }
+
+        .o-best {
+            font-size: 12px;
+            color: var(--mid);
+            letter-spacing: 2px;
+            margin-bottom: 4px;
+        }
+
+        .o-best strong {
+            color: var(--ink);
+        }
+
+        .o-nb {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 20px;
+            letter-spacing: 4px;
+            color: var(--red);
+            height: 24px;
+            margin-bottom: 24px;
+        }
+
+        .btn {
+            padding: 15px 44px;
+            background: var(--ink);
+            color: var(--bg);
+            font-family: 'Outfit', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            border: none;
+            border-radius: 100px;
+            cursor: pointer;
+            transition: transform .15s, opacity .15s;
+            min-height: 44px;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+            opacity: 0.8;
+        }
+
+        /* Feedback & lvlup */
+        .feedback {
+            position: absolute;
+            pointer-events: none;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 30px;
+            letter-spacing: 3px;
+            opacity: 0;
+            white-space: nowrap;
+            color: var(--ink);
+        }
+
+        .feedback.pop {
+            animation: fp 0.65s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+
+        @keyframes fp {
+            0% {
+                opacity: 1;
+                transform: translate(-50%, 0)
+            }
+
+            55% {
+                opacity: 1;
+                transform: translate(-50%, -22px)
+            }
+
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -40px)
+            }
+        }
+
+        .feedback.perfect {
+            color: var(--red);
+        }
+
+        .feedback.miss {
+            color: var(--mid);
+        }
+
+        .lvlup {
+            position: absolute;
+            left: 50%;
+            top: 28%;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 40px;
+            letter-spacing: 5px;
+            pointer-events: none;
+            opacity: 0;
+            white-space: nowrap;
+            transform: translateX(-50%);
+        }
+
+        .lvlup.show {
+            animation: lup 1.1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+
+        @keyframes lup {
+            0% {
+                opacity: 0;
+                transform: translateX(-50%) scale(0.7)
+            }
+
+            20% {
+                opacity: 1;
+                transform: translateX(-50%) scale(1.05)
+            }
+
+            70% {
+                opacity: 1;
+                transform: translateX(-50%) scale(1)
+            }
+
+            100% {
+                opacity: 0;
+                transform: translateX(-50%)
+            }
+        }
+
+        /* ── PAUSE ── */
+        .pause-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            background: rgba(244, 239, 230, 0.92);
+            backdrop-filter: blur(12px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s;
+            padding: var(--sat) var(--sar) var(--sab) var(--sal);
+        }
+
+        .pause-overlay.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .pause-title {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 52px;
+            letter-spacing: 4px;
+            color: var(--ink);
+            margin-bottom: 6px;
+        }
+
+        .pause-sub {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--mid);
+            margin-bottom: 48px;
+        }
+
+        .toggle-row {
+            width: 260px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        }
+
+        .toggle-row:first-of-type {
+            border-top: 1px solid rgba(0, 0, 0, 0.08);
+        }
+
+        .toggle-label {
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 1px;
+            color: var(--ink);
+        }
+
+        .toggle {
+            width: 44px;
+            height: 24px;
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.12);
+            border: none;
+            cursor: pointer;
+            position: relative;
+            transition: background 0.25s;
+            flex-shrink: 0;
+            min-height: 44px;
+        }
+
+        .toggle.on {
+            background: var(--ink);
+        }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #fff;
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle.on::after {
+            transform: translateX(20px);
+        }
+
+        .pause-btns {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 40px;
+            width: 260px;
+        }
+
+        .pause-btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 100px;
+            cursor: pointer;
+            font-family: 'Outfit', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            transition: transform .15s, opacity .15s;
+            min-height: 44px;
+        }
+
+        .pause-btn:active {
+            transform: scale(0.97);
+            opacity: 0.8;
+        }
+
+        .pause-btn.resume {
+            background: var(--ink);
+            color: var(--bg);
+        }
+
+        .pause-btn.restart {
+            background: transparent;
+            color: var(--ink);
+            border: 1.5px solid rgba(0, 0, 0, 0.15);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- 📱 Landscape uyarısı -->
+    <div id="orient-warn">
+        <div class="ow-icon">📱</div>
+        ROTATE YOUR DEVICE
+        <p>PULSE is designed for portrait mode</p>
+    </div>
+
+    <!-- SPLASH -->
+    <div class="splash" id="splash">
+        <div class="splash-ring-wrap">
+            <div class="spr r1"></div>
+            <div class="spr r2"></div>
+            <div class="spr r3"></div>
+            <div class="spr pulse"></div>
+            <div class="spr dot"></div>
+        </div>
+        <div class="splash-title">PULSE</div>
+    </div>
+
+    <!-- CONSENT -->
+    <div class="consent-overlay" id="consent-overlay">
+        <div class="consent-card">
+            <div class="consent-pill"></div>
+            <div class="consent-title">Before You Play</div>
+            <div class="consent-body">
+                We use third-party ads to keep Pulse free. Ads may use your data to show relevant content.
+                Please review our <a href="#" onclick="return false;">Privacy Policy</a> and <a href="#"
+                    onclick="return false;">Terms of Use</a>.
+            </div>
+            <div class="consent-checks">
+                <label class="consent-check">
+                    <input type="checkbox" id="consent-personalized" checked>
+                    <div class="consent-check-box"></div>
+                    <div class="consent-check-label">Personalised ads <span>— tailored to your interests</span></div>
+                </label>
+                <label class="consent-check">
+                    <input type="checkbox" id="consent-analytics" checked>
+                    <div class="consent-check-box"></div>
+                    <div class="consent-check-label">Analytics <span>— help us improve the game</span></div>
+                </label>
+            </div>
+            <button class="consent-accept" onclick="acceptConsent()">Accept & Play</button>
+            <button class="consent-reject" onclick="rejectConsent()">Use non-personalised ads only</button>
+        </div>
+    </div>
+
+    <!-- START -->
+    <div class="screen active" id="start-screen">
+        <div class="s-title">PULSE</div>
+        <div class="s-sub">How long can you last?</div>
+        <div class="s-preview">
+            <div class="pr r1"></div>
+            <div class="pr r2"></div>
+            <div class="pr r3"></div>
+            <div class="pr mv"></div>
+            <div class="pr dot"></div>
+        </div>
+        <div class="s-rules">
+            <div class="s-rule">Tap when the ring reaches the <strong>outer circle</strong></div>
+            <div class="s-rule"><strong style="color:var(--red)">Red zone</strong> = Perfect &nbsp;·&nbsp; <strong>Gray
+                    band</strong> = Good</div>
+            <div class="s-rule">Avoid <strong style="color:var(--red)">red ghost rings</strong> — don't tap those!</div>
+            <div class="s-rule">Speed increases · hit window <strong>shrinks</strong> · 3 lives</div>
+        </div>
+        <div class="s-tap">Tap to play</div>
+    </div>
+
+    <!-- GAME -->
+    <div class="screen" id="game-screen">
+        <div class="hud">
+            <div class="hud-top">
+                <div class="hud-lives">
+                    <div class="hud-lives-lbl">Lives</div>
+                    <div class="lives-row">
+                        <div class="heart" id="h2"><svg viewBox="0 0 24 22">
+                                <path class="hf"
+                                    d="M12 20.5S2 14 2 7.5C2 4.46 4.46 2 7.5 2c1.74 0 3.3.82 4.5 2.09C13.2 2.82 14.76 2 16.5 2 19.54 2 22 4.46 22 7.5c0 6.5-10 13-10 13z"
+                                    stroke="var(--ink)" stroke-width="1.5" />
+                            </svg></div>
+                        <div class="heart" id="h1"><svg viewBox="0 0 24 22">
+                                <path class="hf"
+                                    d="M12 20.5S2 14 2 7.5C2 4.46 4.46 2 7.5 2c1.74 0 3.3.82 4.5 2.09C13.2 2.82 14.76 2 16.5 2 19.54 2 22 4.46 22 7.5c0 6.5-10 13-10 13z"
+                                    stroke="var(--ink)" stroke-width="1.5" />
+                            </svg></div>
+                        <div class="heart" id="h0"><svg viewBox="0 0 24 22">
+                                <path class="hf"
+                                    d="M12 20.5S2 14 2 7.5C2 4.46 4.46 2 7.5 2c1.74 0 3.3.82 4.5 2.09C13.2 2.82 14.76 2 16.5 2 19.54 2 22 4.46 22 7.5c0 6.5-10 13-10 13z"
+                                    stroke="var(--ink)" stroke-width="1.5" />
+                            </svg></div>
+                    </div>
+                </div>
+                <button class="menu-btn" onclick="togglePause()">
+                    <span></span><span></span><span></span>
+                </button>
+            </div>
+            <div class="hud-score">
+                <div class="hud-score-num" id="score-num">0</div>
+                <div class="hud-score-label">Score</div>
+            </div>
+        </div>
+        <div class="canvas-wrap">
+            <canvas id="gameCanvas"></canvas>
+        </div>
+        <div class="hud-bottom">
+            <div class="combo-disp" id="combo-disp"></div>
+            <div class="hud-speed">
+                <div class="speed-name" id="spd-name">CALM</div>
+                <div class="speed-bar-track">
+                    <div class="speed-bar-fill" id="spd-fill" style="width:8%"></div>
+                </div>
+                <div class="speed-lbl">Speed</div>
+            </div>
+            <div class="rings-disp">Rings <span id="rings-num">0</span></div>
+        </div>
+        <div class="feedback" id="feedback"></div>
+        <div class="lvlup" id="lvlup"></div>
+    </div>
+
+    <!-- PAUSE -->
+    <div class="pause-overlay" id="pause-overlay">
+        <div class="pause-title">PAUSED</div>
+        <div class="pause-sub">Game is waiting for you</div>
+        <div class="toggle-row">
+            <div class="toggle-label">Sound</div>
+            <button class="toggle on" id="toggle-sound" onclick="toggleSound()"></button>
+        </div>
+        <div class="toggle-row">
+            <div class="toggle-label">Haptics</div>
+            <button class="toggle on" id="toggle-haptics" onclick="toggleHaptics()"></button>
+        </div>
+        <div class="pause-btns">
+            <button class="pause-btn resume" onclick="togglePause()">Resume</button>
+            <button class="pause-btn restart" onclick="confirmRestart()">Restart</button>
+        </div>
+    </div>
+
+    <!-- CONTINUE -->
+    <div class="screen" id="continue-screen">
+        <div class="c-title">KEEP GOING?</div>
+        <div class="c-sub">Watch an ad to continue with 2 lives</div>
+        <div class="c-lives-preview">
+            <span
+                style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--red);line-height:1;align-self:center;">+</span>
+            <div class="c-heart"><svg viewBox="0 0 24 22">
+                    <path class="chf"
+                        d="M12 20.5S2 14 2 7.5C2 4.46 4.46 2 7.5 2c1.74 0 3.3.82 4.5 2.09C13.2 2.82 14.76 2 16.5 2 19.54 2 22 4.46 22 7.5c0 6.5-10 13-10 13z" />
+                </svg></div>
+            <div class="c-heart"><svg viewBox="0 0 24 22">
+                    <path class="chf"
+                        d="M12 20.5S2 14 2 7.5C2 4.46 4.46 2 7.5 2c1.74 0 3.3.82 4.5 2.09C13.2 2.82 14.76 2 16.5 2 19.54 2 22 4.46 22 7.5c0 6.5-10 13-10 13z" />
+                </svg></div>
+        </div>
+        <button onclick="watchAd()"
+            style="display:flex;align-items:center;justify-content:center;gap:10px;width:260px;padding:18px 32px;background:#181818;color:#f4efe6;border:none;border-radius:100px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;letter-spacing:3px;text-transform:uppercase;box-shadow:0 8px 28px rgba(0,0,0,0.2);margin-bottom:20px;min-height:44px;">
+            ▶ &nbsp;Watch Ad to Continue
+        </button>
+        <div style="font-size:11px;color:#999;letter-spacing:1px;margin-bottom:20px;">
+            Continues used: <strong id="ad-uses-count" style="color:#181818;">0</strong> / 2
+        </div>
+        <button onclick="skipToGameOver()"
+            style="font-size:11px;font-weight:500;letter-spacing:2px;text-transform:uppercase;color:#999;background:none;border:none;cursor:pointer;text-decoration:underline;text-underline-offset:4px;padding:8px;min-height:44px;">
+            Continue without watching
+        </button>
+    </div>
+
+    <!-- GAME OVER -->
+    <div class="screen" id="over-screen">
+        <div class="o-lbl">Final Score</div>
+        <div class="o-score" id="o-score">0</div>
+        <div class="o-stats">
+            <div class="o-stat">
+                <div class="o-sv" id="o-rings">0</div>
+                <div class="o-sl">Rings</div>
+            </div>
+            <div class="o-stat">
+                <div class="o-sv" id="o-combo">0</div>
+                <div class="o-sl">Best Combo</div>
+            </div>
+            <div class="o-stat">
+                <div class="o-sv" id="o-perf">0</div>
+                <div class="o-sl">Perfects</div>
+            </div>
+        </div>
+        <div class="o-best">Best — <strong id="o-best">0</strong></div>
+        <div class="o-nb" id="o-nb"></div>
+        <button class="btn" onclick="startGame()">Play Again</button>
+    </div>
+
+    <script>
+        // ═══════════════════════════════════════════════
+        // 📱 iOS: PULL-TO-REFRESH & BOUNCE ENGELLE
+        // ═══════════════════════════════════════════════
+        document.addEventListener('touchmove', e => { e.preventDefault(); }, { passive: false });
+        document.addEventListener('touchstart', e => {
+            // Çoklu dokunuşta zoom engeli
+            if (e.touches.length > 1) e.preventDefault();
+        }, { passive: false });
+
+        // ═══════════════════════════════════════════════
+        // 📱 iOS: ÇIFT TIK ZOOM ENGELİ
+        // ═══════════════════════════════════════════════
+        let lastTap = 0;
+        document.addEventListener('touchend', e => {
+            const now = Date.now();
+            if (now - lastTap < 300) e.preventDefault();
+            lastTap = now;
+        }, { passive: false });
+
+        // ═══════════════════════════════════════════════
+        // 📱 GÖRÜNÜR ALAN — iOS & Android güvenli hesap
+        // ═══════════════════════════════════════════════
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let SZ = 300;
+
+        function resize() {
+            // window.visualViewport: sanal klavye / adres çubuğu kaymasını doğru yönetir
+            const vp = window.visualViewport;
+            const vw = vp ? vp.width : window.innerWidth;
+            const vh = vp ? vp.height : window.innerHeight;
+
+            const maxW = Math.min(vw, 420);
+            // HUD top ~130 + HUD bottom ~70 + safe area padding ~40
+            const availH = vh - 240;
+            SZ = Math.max(180, Math.floor(Math.min(maxW - 48, availH)));
+            canvas.width = canvas.height = SZ;
+        }
+
+        resize();
+        window.addEventListener('resize', resize);
+        if (window.visualViewport) window.visualViewport.addEventListener('resize', resize);
+
+        const C = () => SZ / 2;
+        const R = n => Math.max(1, n * SZ * 0.47);
+
+        // ═══════════════════════════════════════════════
+        // 🎮 OYUN MANTIGI (değişmedi)
+        // ═══════════════════════════════════════════════
+        const TIERS = [
+            { name: 'CALM', color: '#888', spd: 0.010, hw: 0.16, pw: 0.072, bar: 8 },
+            { name: 'STEADY', color: '#666', spd: 0.013, hw: 0.145, pw: 0.064, bar: 18 },
+            { name: 'BRISK', color: '#444', spd: 0.016, hw: 0.130, pw: 0.056, bar: 30 },
+            { name: 'SHARP', color: '#222', spd: 0.020, hw: 0.115, pw: 0.048, bar: 44 },
+            { name: 'FAST', color: '#a03800', spd: 0.025, hw: 0.100, pw: 0.040, bar: 57 },
+            { name: 'FIERCE', color: '#c02c0a', spd: 0.031, hw: 0.082, pw: 0.033, bar: 70 },
+            { name: 'INSANE', color: '#e0300e', spd: 0.038, hw: 0.066, pw: 0.026, bar: 84 },
+            { name: 'CHAOS', color: '#e8321f', spd: 0.046, hw: 0.052, pw: 0.020, bar: 100 },
+        ];
+        const MID = 0.88;
+        let running = false, animId = null;
+        let score = 0, lives = 3, combo = 0, bestCombo = 0, ringCount = 0, perfCount = 0;
+        let best = parseInt(localStorage.getItem('pulse3') || '0');
+        let ti = 0, ringsInTier = 0;
+        let pulseR = 0.05, isGhost = false, ghostChance = 0.07;
+        let missF = 0, hitF = 0, shake = 0, sx = 0, sy = 0;
+        let parts = [];
+        const T = () => TIERS[Math.min(ti, TIERS.length - 1)];
+        function tierProgress() { return Math.min(ringsInTier / 12, 1); }
+        function currentHW() { const t = T(); return t.hw * 1.8 + (t.hw - t.hw * 1.8) * tierProgress(); }
+        function currentPW() { const t = T(); return t.pw * 1.8 + (t.pw - t.pw * 1.8) * tierProgress(); }
+        const hz = () => ({ i: MID - currentHW() / 2, o: MID + currentHW() / 2 });
+        const pz = () => ({ i: MID - currentPW() / 2, o: MID + currentPW() / 2 });
+        function arc(cx, cy, r) { if (r > 0) ctx.arc(cx, cy, r, 0, Math.PI * 2); }
+
+        function draw(dt = 1) {
+            ctx.clearRect(0, 0, SZ, SZ);
+            const cx = C() + sx, cy = C() + sy;
+            const h = hz(), p = pz();
+            ctx.beginPath(); arc(cx, cy, R(MID) + 16);
+            ctx.strokeStyle = 'rgba(0,0,0,0.04)'; ctx.lineWidth = 32; ctx.stroke();
+            const hm = Math.max(2, R((h.i + h.o) / 2)), ht = Math.max(2, R(h.o - h.i));
+            ctx.beginPath(); arc(cx, cy, hm);
+            ctx.strokeStyle = 'rgba(0,0,0,0.07)'; ctx.lineWidth = ht; ctx.stroke();
+            const pm2 = Math.max(2, R((p.i + p.o) / 2)), pt = Math.max(2, R(p.o - p.i));
+            ctx.beginPath(); arc(cx, cy, pm2);
+            ctx.strokeStyle = 'rgba(232,50,31,0.16)'; ctx.lineWidth = Math.max(pt, 3); ctx.stroke();
+            ctx.beginPath(); arc(cx, cy, R(MID));
+            ctx.strokeStyle = missF > 0 ? `rgba(232,50,31,${0.15 + missF * 0.35})` : 'rgba(0,0,0,0.18)';
+            ctx.lineWidth = 2; ctx.stroke();
+            for (let i = 0; i < 48; i++) {
+                const a = i / 48 * Math.PI * 2, ro = R(MID), ri = ro - (i % 4 === 0 ? 9 : 4);
+                ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * ro, cy + Math.sin(a) * ro);
+                ctx.lineTo(cx + Math.cos(a) * ri, cy + Math.sin(a) * ri);
+                ctx.strokeStyle = 'rgba(0,0,0,0.1)'; ctx.lineWidth = 1; ctx.stroke();
+            }
+            ctx.beginPath(); arc(cx, cy, R(0.18));
+            ctx.strokeStyle = 'rgba(0,0,0,0.15)'; ctx.lineWidth = 1.5; ctx.stroke();
+            ctx.beginPath(); arc(cx, cy, R(0.055));
+            ctx.fillStyle = 'rgba(0,0,0,0.85)'; ctx.fill();
+            const pr = Math.max(2, R(pulseR));
+            const inH = pulseR >= h.i && pulseR <= h.o, inP = pulseR >= p.i && pulseR <= p.o;
+            if (isGhost) {
+                ctx.save(); ctx.setLineDash([7, 6]);
+                ctx.beginPath(); arc(cx, cy, pr);
+                ctx.strokeStyle = inH ? '#e8321f' : 'rgba(232,50,31,0.5)';
+                ctx.lineWidth = inH ? 4 : 2.5; ctx.stroke();
+                ctx.setLineDash([]); ctx.restore();
+                ctx.save(); ctx.font = "bold 10px 'Outfit',sans-serif"; ctx.fillStyle = '#e8321f';
+                ctx.textAlign = 'center'; ctx.globalAlpha = 0.75;
+                ctx.fillText('GHOST', cx, cy - pr - 11); ctx.restore();
+            } else {
+                if (inH) { ctx.beginPath(); arc(cx, cy, pr); ctx.strokeStyle = inP ? 'rgba(232,50,31,0.2)' : 'rgba(0,0,0,0.08)'; ctx.lineWidth = 16; ctx.stroke(); }
+                ctx.beginPath(); arc(cx, cy, pr);
+                if (inP) { ctx.strokeStyle = '#e8321f'; ctx.lineWidth = 4.5; ctx.globalAlpha = 1; }
+                else if (inH) { ctx.strokeStyle = '#181818'; ctx.lineWidth = 3.5; ctx.globalAlpha = 1; }
+                else { ctx.strokeStyle = '#181818'; ctx.lineWidth = 2.5; ctx.globalAlpha = 0.4 + pulseR * 0.6; }
+                ctx.stroke(); ctx.globalAlpha = 1;
+            }
+            if (hitF > 0) { ctx.beginPath(); arc(cx, cy, Math.max(2, R(MID) + (1 - hitF) * 28)); ctx.strokeStyle = `rgba(0,0,0,${hitF * 0.3})`; ctx.lineWidth = 2; ctx.stroke(); }
+            if (missF > 0) { const ms = R(0.1) * missF; ctx.save(); ctx.translate(cx, cy); ctx.strokeStyle = `rgba(232,50,31,${missF * 0.65})`; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-ms, -ms); ctx.lineTo(ms, ms); ctx.stroke(); ctx.beginPath(); ctx.moveTo(ms, -ms); ctx.lineTo(-ms, ms); ctx.stroke(); ctx.restore(); }
+            parts = parts.filter(p => p.l > 0);
+            parts.forEach(p => { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 0.14 * dt; p.l -= 4 * dt; const pr2 = p.r * (p.l / 100); if (pr2 <= 0) return; ctx.beginPath(); ctx.arc(p.x, p.y, pr2, 0, Math.PI * 2); ctx.fillStyle = p.c + Math.floor(p.l * 2.4).toString(16).padStart(2, '0'); ctx.fill(); });
+        }
+        function burst(col, n = 10) { const cx2 = C() + sx, cy2 = C() + sy, pr = R(pulseR); for (let i = 0; i < n; i++) { const a = Math.random() * Math.PI * 2, sp = 1.5 + Math.random() * 3.5; parts.push({ x: cx2 + Math.cos(a) * pr, y: cy2 + Math.sin(a) * pr, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 1, r: 2 + Math.random() * 3, l: 55 + Math.random() * 45, c: col }); } }
+        let lastT = 0;
+        function loop(ts) {
+            if (!running || paused) return;
+            const dt = Math.min((ts - lastT) / 16.667, 3); lastT = ts;
+            if (shake > 0) { shake -= 0.14 * dt; sx = (Math.random() - .5) * shake * 7; sy = (Math.random() - .5) * shake * 7; } else { sx = sy = 0; }
+            if (missF > 0) missF = Math.max(0, missF - 0.055 * dt);
+            if (hitF > 0) hitF = Math.max(0, hitF - 0.05 * dt);
+            pulseR += T().spd * dt;
+            if (pulseR > 1.08) { if (isGhost) { score += 3; updScore(); } else onMiss(); nextRing(); }
+            draw(dt); animId = requestAnimationFrame(loop);
+        }
+
+        // ═══════════════════════════════════════════════
+        // 🔔 CONSENT
+        // ═══════════════════════════════════════════════
+        function initConsent() {
+            const consent = localStorage.getItem('pulse_consent');
+            setTimeout(() => {
+                const splash = document.getElementById('splash');
+                splash.classList.add('fade-out');
+                setTimeout(() => { splash.style.display = 'none'; if (consent) document.getElementById('consent-overlay').style.display = 'none'; }, 700);
+            }, 2000);
+        }
+        function acceptConsent() { const p = document.getElementById('consent-personalized').checked; const a = document.getElementById('consent-analytics').checked; localStorage.setItem('pulse_consent', JSON.stringify({ personalised: p, analytics: a, date: new Date().toISOString() })); dismissConsent(); }
+        function rejectConsent() { localStorage.setItem('pulse_consent', JSON.stringify({ personalised: false, analytics: false, date: new Date().toISOString() })); dismissConsent(); }
+        function dismissConsent() { const el = document.getElementById('consent-overlay'); el.classList.add('hidden'); setTimeout(() => el.style.display = 'none', 400); }
+        initConsent();
+
+        // ═══════════════════════════════════════════════
+        // ⚙️ AYARLAR
+        // ═══════════════════════════════════════════════
+        let soundOn = true, hapticsOn = true, paused = false;
+        function toggleSound() { soundOn = !soundOn; document.getElementById('toggle-sound').classList.toggle('on', soundOn); }
+        function toggleHaptics() { hapticsOn = !hapticsOn; document.getElementById('toggle-haptics').classList.toggle('on', hapticsOn); }
+        function togglePause() { paused = !paused; document.getElementById('pause-overlay').classList.toggle('show', paused); if (!paused) { lastT = performance.now(); requestAnimationFrame(loop); } }
+        function confirmRestart() { paused = false; document.getElementById('pause-overlay').classList.remove('show'); startGame(); }
+
+        // ═══════════════════════════════════════════════
+        // 📳 VİBRASYON
+        // ═══════════════════════════════════════════════
+        function vibrate(p) { if (hapticsOn && navigator.vibrate) navigator.vibrate(p); }
+
+        // ═══════════════════════════════════════════════
+        // 🔊 SES — iOS AudioContext unlock dahil
+        // ═══════════════════════════════════════════════
+        let AC;
+        function getAC() {
+            if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+            return AC;
+        }
+        // iOS: ilk dokunuşta AudioContext'i unlock et
+        document.addEventListener('touchstart', () => { try { getAC().resume(); } catch (e) { } }, { once: true });
+
+        function play(freq, type, duration, vol = 0.18) {
+            if (!soundOn) return;
+            try {
+                const ac = getAC();
+                if (ac.state === 'suspended') ac.resume();
+                const o = ac.createOscillator(), g = ac.createGain();
+                o.connect(g); g.connect(ac.destination);
+                o.type = type; o.frequency.setValueAtTime(freq, ac.currentTime);
+                g.gain.setValueAtTime(0, ac.currentTime);
+                g.gain.linearRampToValueAtTime(vol, ac.currentTime + 0.008);
+                g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + duration);
+                o.start(ac.currentTime); o.stop(ac.currentTime + duration);
+            } catch (e) { }
+        }
+        function sfxGood() { play(520, 'sine', 0.12, 0.14); play(780, 'sine', 0.09, 0.08); vibrate(8); }
+        function sfxPerfect() { play(660, 'sine', 0.10, 0.16); setTimeout(() => play(880, 'sine', 0.10, 0.14), 40); setTimeout(() => play(1100, 'sine', 0.08, 0.10), 90); if (navigator.vibrate) navigator.vibrate([12, 30, 12, 30, 12]); }
+        function sfxMiss() { play(180, 'sawtooth', 0.15, 0.10); setTimeout(() => play(130, 'sawtooth', 0.12, 0.10), 60); vibrate([40, 20, 40]); }
+        function sfxGhost() { play(220, 'square', 0.12, 0.08); setTimeout(() => play(160, 'square', 0.10, 0.08), 50); vibrate([30, 15, 30]); }
+        function sfxLevelUp() { [440, 554, 660, 880].forEach((f, i) => setTimeout(() => play(f, 'sine', 0.18, 0.10), i * 55)); vibrate([10, 40, 10, 40, 20]); }
+        function sfxGameOver() { play(300, 'sawtooth', 0.2, 0.12); setTimeout(() => play(220, 'sawtooth', 0.18, 0.14), 80); setTimeout(() => play(150, 'sawtooth', 0.15, 0.25), 180); vibrate([60, 40, 80]); }
+
+        // ═══════════════════════════════════════════════
+        // 🎮 OYUN FONKSİYONLARI
+        // ═══════════════════════════════════════════════
+        function nextRing() { pulseR = 0.05; isGhost = Math.random() < ghostChance; }
+        function tap() {
+            if (!running || paused) return;
+            const h = hz(), p = pz();
+            const inH = pulseR >= h.i && pulseR <= h.o, inP = pulseR >= p.i && pulseR <= p.o;
+            if (isGhost) { if (inH) ghostTap(); return; }
+            if (inP) onPerf(); else if (inH) onGood(); else onBad();
+        }
+        function onPerf() { combo++; if (combo > bestCombo) bestCombo = combo; perfCount++; ringsInTier++; ringCount++; score += 15 + combo * 3; hitF = 1; sfxPerfect(); burst('#e8321f', 14); updScore(); updCombo(); feedback('PERFECT', 'perfect'); advTier(); nextRing(); }
+        function onGood() { combo++; if (combo > bestCombo) bestCombo = combo; ringsInTier++; ringCount++; score += 8 + Math.floor(combo * 1.5); hitF = 0.55; sfxGood(); burst('#181818', 8); updScore(); updCombo(); feedback('GOOD', ''); advTier(); nextRing(); }
+        function onBad() { combo = 0; loseLife(); shake = 1; missF = 1; sfxMiss(); feedback('EARLY', 'miss'); updCombo(); nextRing(); }
+        function onMiss() { combo = 0; loseLife(); shake = 0.7; missF = 1; sfxMiss(); feedback('TOO SLOW', 'miss'); updCombo(); }
+        function ghostTap() { combo = 0; loseLife(); shake = 1.2; missF = 1; sfxGhost(); feedback('GHOST!', 'miss'); updCombo(); nextRing(); }
+        function loseLife() { lives--; const h = document.getElementById(`h${lives}`); if (h) { h.classList.add('shatter'); setTimeout(() => { h.classList.remove('shatter'); h.classList.add('lost'); }, 380); } if (lives <= 0) setTimeout(endGame, 450); }
+        function advTier() { if (ringsInTier >= 12 && ti < TIERS.length - 1) { ti++; ringsInTier = 0; ghostChance = 0.08 + ti * 0.018; updSpeed(true); } else updSpeed(false); }
+        function updSpeed(lv) { const t = T(); document.getElementById('spd-name').textContent = t.name; document.getElementById('spd-name').style.color = t.color; document.getElementById('spd-fill').style.width = t.bar + '%'; document.getElementById('spd-fill').style.background = t.color; if (lv) { sfxLevelUp(); const b = document.getElementById('lvlup'); b.textContent = t.name; b.style.color = t.color; b.classList.remove('show'); void b.offsetWidth; b.classList.add('show'); } }
+        function updScore() { document.getElementById('score-num').textContent = score; document.getElementById('rings-num').textContent = ringCount; }
+        function updCombo() { const el = document.getElementById('combo-disp'); if (combo >= 3) { el.textContent = combo >= 10 ? `🔥 ×${combo}` : `×${combo} COMBO`; el.className = 'combo-disp show' + (combo >= 10 ? ' hot' : ''); } else el.className = 'combo-disp'; }
+        function feedback(txt, cls) { const el = document.getElementById('feedback'); el.textContent = txt; el.className = 'feedback ' + cls; el.style.left = (canvas.offsetLeft + C()) + 'px'; el.style.top = (canvas.offsetTop + C() - R(MID) - 38) + 'px'; void el.offsetWidth; el.classList.add('pop'); }
+        function show(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+
+        let adContinues = 0;
+        function startGame() {
+            paused = false; adContinues = 0;
+            document.getElementById('pause-overlay').classList.remove('show');
+            resize();
+            score = 0; lives = 3; combo = 0; bestCombo = 0; ringCount = 0; perfCount = 0;
+            ti = 0; ringsInTier = 0; ghostChance = 0.07;
+            pulseR = 0.05; isGhost = false; missF = 0; hitF = 0; shake = 0; sx = sy = 0; parts = [];
+            ['h0', 'h1', 'h2'].forEach(id => { const h = document.getElementById(id); if (h) h.className = 'heart'; });
+            updScore(); updCombo(); updSpeed(false);
+            show('game-screen'); running = true; lastT = performance.now();
+            if (animId) cancelAnimationFrame(animId);
+            requestAnimationFrame(loop);
+        }
+        function endGame() {
+            running = false; if (animId) cancelAnimationFrame(animId);
+            sfxGameOver();
+            if (adContinues < 2) { document.getElementById('ad-uses-count').textContent = adContinues; setTimeout(() => show('continue-screen'), 500); }
+            else showGameOver();
+        }
+        function watchAd() {
+            // ── REKLAM PLACEHOLDER ──────────────────────────────
+            // Aşama 4'te buraya AdMob Rewarded Ad SDK gelecek.
+            // Reklam bitince onAdComplete() çağır.
+            // ────────────────────────────────────────────────────
+            onAdComplete();
+        }
+        function onAdComplete() {
+            adContinues++; lives = 2;
+            for (let i = 0; i < 3; i++) { const h = document.getElementById(`h${i}`); if (h) h.className = 'heart'; }
+            document.getElementById('h2').classList.add('lost');
+            show('game-screen'); running = true; paused = false; lastT = performance.now(); nextRing();
+            requestAnimationFrame(loop);
+        }
+        function skipToGameOver() { showGameOver(); }
+        function showGameOver() {
+            const isNew = score > best;
+            if (isNew) { best = score; localStorage.setItem('pulse3', best); }
+            document.getElementById('o-score').textContent = score;
+            document.getElementById('o-rings').textContent = ringCount;
+            document.getElementById('o-combo').textContent = bestCombo;
+            document.getElementById('o-perf').textContent = perfCount;
+            document.getElementById('o-best').textContent = best;
+            document.getElementById('o-nb').textContent = isNew ? '★ NEW BEST' : '';
+            setTimeout(() => show('over-screen'), 100);
+        }
+
+        // ═══════════════════════════════════════════════
+        // 🖱️ EVENTS
+        // ═══════════════════════════════════════════════
+        document.getElementById('start-screen').addEventListener('pointerdown', startGame);
+        document.getElementById('game-screen').addEventListener('pointerdown', e => { e.preventDefault(); tap(); });
+        document.addEventListener('keydown', e => {
+            if (e.code !== 'Space') return; e.preventDefault();
+            if (document.getElementById('start-screen').classList.contains('active')) startGame();
+            else if (running) tap();
+        });
+    </script>
+</body>
+
+</html>
