@@ -1,0 +1,9 @@
+
+{
+  "name": "pulse-game",
+  "version": "1.0.0",
+  "description": "PULSE — Rhythm tap game",
+  "scripts": {
+    "build": "echo 'Static site, no build needed'"
+  }
+}
